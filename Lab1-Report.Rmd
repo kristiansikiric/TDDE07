@@ -1,0 +1,104 @@
+---
+html_document: default
+author: "Pontus Svensson"
+date: ''
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+title: ''
+header-includes: \usepackage{float}
+---
+
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, fig.pos = "H", out.extra = "", fig.width = 5, fig.height = 5, fig.align = "center", cache = FALSE)
+
+```
+
+#Assignment 1 - Bernoulli ... again.
+In this assignment we assumed to have obtained a Bernoulli distributed sample of 14 successes and 6 failures, 20 trials in total. We assumed a Beta(alpha,beta) prior with alpha = beta = 2.
+
+For the first part of the assignment, random numbers from the posterior Beta distribution were drawn. In the plot below, the histogram is the randomly sampled beta distribution, the blue line is the true mean, the green lines are the standard deviation and the red line is the PDF of the beta distribution. When the number of draws increases, the mean of the histogram converges to the true mean, and the same for the standard deviation. The plot shows a histogram after 2000 draws.
+
+```{r}
+### 1 a)
+set.seed(235)
+
+# Variables
+s = 14
+n = 20
+a0 = b0 = 2
+f = n - s
+a_n = a0 + s
+b_n = b0 + f
+
+rand.samples = rbeta(n*100, a_n, b_n)
+
+# True values
+mean = (a_n) / (a_n+b_n)
+variance = ((a_n) * (b_n)) / (((a_n) + (b_n))^2 * ((a_n) + (b_n) + 1))
+stdev = variance^0.5
+
+# Plots
+hist(rand.samples,freq=FALSE,main="Histogram of beta distribution",xlab="")
+abline(v=mean,col="dodgerblue4",lwd=2)
+abline(v=mean-stdev,col="darkgreen",lwd=2)
+abline(v=mean+stdev,col="darkgreen",lwd=2)
+legend("topleft", col = c("dodgerblue4", "darkgreen", "red"), 
+       legend=c("Mean","Standard deviation", "PDF of beta"),lty=1)
+x = seq(0,1,length=100)
+curve(dbeta(x,a_n,b_n),add=TRUE,col="red",lwd=2)
+```
+
+For the second part of the assignment the posterior probability were to be calculated by simulation by 10000 draws and compared to the exact value. The results are shown below. When the draws are increased the simulated probability converges to the exact value. 
+
+```{r,eval=TRUE}
+set.seed(235)
+
+nDraws = 10000
+rand.samples = rbeta(nDraws, a_n, b_n)
+p_calc = 100*sum(rand.samples<0.4)/length(rand.samples)
+p_true = 100*pbeta(0.4, a0+s,b0+f)
+print(paste("Simulated probability: ", p_calc))
+print(paste("Exact probability: ", p_true))
+```
+
+For the final part of the assignment, the posterior log-odds distribution were to be comupted by simulation with 10000 draws. The result is shown below. 
+
+```{r}
+prior = beta(a0, b0)
+hist(log(rand.samples/(1-rand.samples)), freq=FALSE, 
+     main = "Histogram of the log-odds",xlab="")
+lines(density(log(rand.samples/(1-rand.samples))),col="red",lwd=2)
+legend("topright", col = c("red"), legend=c("PDF of the log-odds"),lty=1)
+
+```
+
+#Assignment 2 - Log-normal distribution and the Gini coefficient
+
+In this assignment ten observations of monthly incomes were given. This kind of data is said to be normally distributed with $\mu=3.5$ and unknown variance $\sigma^2$ with prior $p(\sigma^2)\propto1/\sigma^2$. The posterior for \sigma^2 is the $Inv-\chi^2(n, \tau^2)$ distribution. 
+
+10000 draws were simulated from the posterior of $\sigma^2$, which can be seen in the histogram below. The red line in the histogram is the theoretical scaled inverse chi-squared distribution.
+
+```{r}
+### 2 a)
+set.seed(235)
+
+draws = 10000
+income = c(14, 25, 45, 25, 30, 33, 19, 50, 34, 67)
+n = 10
+v = 9
+
+y = log(income)
+tau2=sum((y-3.5)^2)/10
+tau = tau2**(0.5)
+
+var<-((n-1)*tau2)/rchisq(draws,n-1)
+hist(var,breaks = seq(0,3,length=100),freq=FALSE, xlab="Variance", main="Histogram of variance") 
+theta = seq(0,3,length=100)
+p = ((v/2)^(v/2))*(tau^v)*(theta^-((v/2)+1))*exp((-v*tau2)/(2*theta))
+p = p/gamma(v/2)
+lines(theta,p,col="red", lwd=2)
+legend("topright", col = c("red"), legend=c("PDF of the Scaled inverse chi-squared"),lty=1)
+```
