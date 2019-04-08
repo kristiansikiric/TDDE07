@@ -27,11 +27,25 @@ hist(G)
 ### 2 c)
 set.seed(235)
 
-quantile(G,probs = seq(0,1,0.025))
+q = quantile(G,probs=c(0.025,0.975))
+print(paste("Lower threshold of the credible interval: ", q[1]))
+print(paste("Upper threshold of the credible interval: ", q[2]))
+newG = G[which(G > q[1])]
+newG = newG[which(newG < q[2])]
+plot(density(G), main="PDF of G", xlab="")
+legend("topright", col = c("red", "dodgerblue4"), legend=c("Credible interval", "HPD interval"),lty=1)
+abline(v=q[1],col="red")
+abline(v=q[2],col="red")
 
-newG = G[which(G > 0.1714136)]
-newG = newG[which(newG < 0.4396433)]
-plot(density(G))
-library(coda)
-HPDinterval(as.mcmc(G),prob = 0.95)
+
+dx <- density(G)
+dn <- cumsum(dx$y)/sum(dx$y)
+li <- which(dn>=0.025)[1]
+ui <- which(dn>=0.975)[1]
+dx$x[c(li,ui)]
+print(paste("Lower threshold of the highest posterior density interval: ", dx$x[c(li,ui)][1]))
+print(paste("Upper threshold of the highest posterior density interval: ", dx$x[c(li,ui)][2]))
+abline(v = 0.1690950,col="dodgerblue4")
+abline(v= 0.4408587,col="dodgerblue4")
+abline(h=0)
 
