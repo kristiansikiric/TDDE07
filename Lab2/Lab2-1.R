@@ -1,4 +1,4 @@
-data =read.delim("/home/krisi211/Desktop/TDDE07/Lab2/TempLinkoping.txt")
+data =read.delim("/home/ponsv690/Documents/TDDE07/Lab2/TempLinkoping.txt")
 
 set.seed(235)
 
@@ -16,20 +16,20 @@ hist(var,freq = FALSE)
 beta = matrix(0,Ndraws,3)
 library(mvtnorm)
 
-sim.beta = function(sigma2){
-  rmvnorm(n=1,mean=mu_0,sigma=sigma2*solve(Omega_0))
+sim.beta = function(sigma2, mu, omega){
+  rmvnorm(n=1,mean=mu,sigma=sigma2*solve(omega))
 }
 
-betas = sapply(var,sim.beta)
+betas = sapply(var,sim.beta,mu = mu_0, omega = Omega_0)
 betas = t(betas)
 
-prior =function(betas,time){
+reg_fun =function(betas,time){
   #FRÅGA!!!!!: Hur får man in epsilon i ekvationen?
   temp = betas[1] + betas[2]*time + betas[3]*time^2
   return(temp)
 }
 
-prior.temp = apply(betas[seq(1,25,1),],1,prior, time = data$time)
+prior.temp = apply(betas[seq(1,25,1),],1,reg_fun, time = data$time)
 x = dim(prior.temp)[1]
 x.axis = (1:x) / x
 #FRÅGA!!!!: Hur tätt ska kurvorna ligga varandra?
@@ -40,6 +40,31 @@ for (i in 2:25) {
 
 ## 1b
 X = cbind(rep(1,length(data$time)),data$time,data$time^2)
+X.prim.X = t(X)%*%X
 beta.hat = solve(t(X)%*%X)%*%t(X)%*%data$temp
 mu_n = solve((t(X)%*%X + Omega_0))%*%(t(X)%*%X%*%beta.hat + Omega_0%*%mu_0)
-Omega_n
+Omega_n = X.prim.X + Omega_0
+nu_n = nu_0 + dim(X)[1]
+nuvar_n = nu_0%*%var_0 + (t(data$temp)%*%data$temp + t(mu_0)%*%Omega_0%*%mu_0 - t(mu_n)%*%Omega_n%*%mu_n)
+var_n = as.numeric(nuvar_n/nu_n)
+
+var.post = (nu_n*var_n)/rchisq(Ndraws,nu_n)
+hist(var.post) #DOES IT LOOK GOOD??
+
+betas.post = sapply(var.post,sim.beta, mu = mu_n, omega = Omega_n)
+betas.post = t(betas.post)
+
+hist(betas[,1])
+hist(betas[,2])
+hist(betas[,3])
+
+plot(data$temp)
+post.temp = apply(betas.post[1:1000,],1,reg_fun,time = data$time)
+post.temp.median = apply(post.temp,1,median)
+lines(post.temp.median)
+
+post.temp.q = apply(post.temp,1,quantile,probs = c(0.025,0.975),na.rm=TRUE) #How does this work??
+lines(post.temp.q[1,],col = "red")
+lines(post.temp.q[2,],col = "blue")
+
+## 1c
