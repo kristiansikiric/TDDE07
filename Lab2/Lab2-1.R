@@ -1,4 +1,4 @@
-data =read.delim("/home/ponsv690/Documents/TDDE07/Lab2/TempLinkoping.txt")
+data =read.delim("/home/krisi211/Desktop/TDDE07/Lab2/TempLinkoping.txt")
 
 set.seed(235)
 
@@ -68,3 +68,12 @@ lines(post.temp.q[1,],col = "red")
 lines(post.temp.q[2,],col = "blue")
 
 ## 1c
+time = -betas[,2]/(2*betas[,3])
+plot(density(time)$x*366,density(time)$y,type="l",xlab = "Days", ylab = "Max Temp dist")
+
+## 1d
+# mu_0: vector of length 7, set the last terms to zero so that the higher 
+#order terms have no effect.
+
+# omega_0: matrix of dim 7x7, set the last terms in the diagonal to a very high value
+# so that the variance of the higher order terms becomes small.
