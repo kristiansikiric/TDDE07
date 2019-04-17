@@ -1,0 +1,29 @@
+---
+author: "Pontus Svensson (ponsv690) & Kristian Sikiric (krisi211)"
+date: ""
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+title: "TDDE07 - Lab 2"
+header-includes:
+-  \usepackage{float}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, fig.pos = "H", out.extra = "", fig.width = 5, fig.height = 5, fig.align = "center", cache = FALSE)
+```
+
+# Assignment 1
+### Linear and polynomial regression
+
+In this assignent a data set of temperatures in Malmslätt, Linköping was given. The task was to perfrom a Bayesian analysis of a quadratic regression $ temp = \beta_0 + \beta_1*time + \beta_2*time^2$. 
+
+First the model parameters for the prior distribution were to be determined. To do this, a conjugate prior for the linear regression model was used. At first we used some given values for the hyperparameters. These resulted in a large variance between different simulations. 
+
+With some trial and error we ended up using the following tuned hyperparameters: $\mu_0 = (-15, 150, -150), \Omega_0 = I_3, \nu_0 = 40, \sigma^2_0 = 1$. This resulted in the following regression curves. 
+
+## Bild
+
+### Motivera Bild ###

@@ -24,7 +24,6 @@ betas = sapply(var,sim.beta,mu = mu_0, omega = Omega_0)
 betas = t(betas)
 
 reg_fun =function(betas,time){
-  #FRÅGA!!!!!: Hur får man in epsilon i ekvationen?
   temp = betas[1] + betas[2]*time + betas[3]*time^2
   return(temp)
 }
@@ -32,7 +31,6 @@ reg_fun =function(betas,time){
 prior.temp = apply(betas[seq(1,25,1),],1,reg_fun, time = data$time)
 x = dim(prior.temp)[1]
 x.axis = (1:x) / x
-#FRÅGA!!!!: Hur tätt ska kurvorna ligga varandra?
 plot(x.axis,prior.temp[,1],type = "l", xlab = "Time", ylab = "Temperature",ylim=c(-20,30))
 for (i in 2:25) {
   lines(x.axis,prior.temp[,i])
@@ -49,21 +47,21 @@ nuvar_n = nu_0%*%var_0 + (t(data$temp)%*%data$temp + t(mu_0)%*%Omega_0%*%mu_0 - 
 var_n = as.numeric(nuvar_n/nu_n)
 
 var.post = (nu_n*var_n)/rchisq(Ndraws,nu_n)
-hist(var.post) #DOES IT LOOK GOOD??
+hist(var.post)
 
 betas.post = sapply(var.post,sim.beta, mu = mu_n, omega = Omega_n)
 betas.post = t(betas.post)
 
-hist(betas[,1])
-hist(betas[,2])
-hist(betas[,3])
+hist(betas.post[,1])
+hist(betas.post[,2])
+hist(betas.post[,3])
 
 plot(data$temp)
 post.temp = apply(betas.post[1:1000,],1,reg_fun,time = data$time)
 post.temp.median = apply(post.temp,1,median)
 lines(post.temp.median)
 
-post.temp.q = apply(post.temp,1,quantile,probs = c(0.025,0.975),na.rm=TRUE) #How does this work??
+post.temp.q = apply(post.temp,1,quantile,probs = c(0.025,0.975),na.rm=TRUE)
 lines(post.temp.q[1,],col = "red")
 lines(post.temp.q[2,],col = "blue")
 
