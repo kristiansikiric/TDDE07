@@ -47,14 +47,14 @@ nuvar_n = nu_0%*%var_0 + (t(data$temp)%*%data$temp + t(mu_0)%*%Omega_0%*%mu_0 - 
 var_n = as.numeric(nuvar_n/nu_n)
 
 var.post = (nu_n*var_n)/rchisq(Ndraws,nu_n)
-hist(var.post)
+hist(var.post,main = "Histogram of posterior variance", xlab = "")
 
 betas.post = sapply(var.post,sim.beta, mu = mu_n, omega = Omega_n)
 betas.post = t(betas.post)
 
-hist(betas.post[,1])
-hist(betas.post[,2])
-hist(betas.post[,3])
+hist(betas.post[,1],main = "Histogram of posterior beta 0", xlab = "")
+hist(betas.post[,2],main = "Histogram of posterior beta 1", xlab = "")
+hist(betas.post[,3],main = "Histogram of posterior beta 2", xlab = "")
 
 plot(data$temp)
 post.temp = apply(betas.post[1:1000,],1,reg_fun,time = data$time)
@@ -64,6 +64,7 @@ lines(post.temp.median)
 post.temp.q = apply(post.temp,1,quantile,probs = c(0.025,0.975),na.rm=TRUE)
 lines(post.temp.q[1,],col = "red")
 lines(post.temp.q[2,],col = "blue")
+legend("bottom", col = c("red", "blue", "black"), legend = c("Lower 2.5%", "Upper 97.5%", "Median"), lty=1)
 
 ## 1c
 time = -betas[,2]/(2*betas[,3])
