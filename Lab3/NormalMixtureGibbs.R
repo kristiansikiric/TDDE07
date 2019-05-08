@@ -17,7 +17,7 @@ sigma2_0 <- rep(var(x),nComp) # s20 (best guess of sigma2)
 nu0 <- rep(2,nComp) # degrees of freedom for prior on sigma2
 
 # MCMC options
-nIter <- 100 # Number of Gibbs sampling draws
+nIter <- 500 # Number of Gibbs sampling draws
 
 # Plotting options
 plotFit <- TRUE
@@ -66,6 +66,7 @@ mixDensMean <- rep(0,length(xGrid))
 effIterCount <- 0
 ylim <- c(0,2*max(hist(x)$density))
 
+mixDraws = matrix(0,nIter,4)
 
 for (k in 1:nIter){
   message(paste('Iteration number:',k))
@@ -84,12 +85,18 @@ for (k in 1:nIter){
     muPost <- wPrior*muPrior + (1-wPrior)*mean(x[alloc == j])
     tau2Post <- 1/precPost
     mu[j] <- rnorm(1, mean = muPost, sd = sqrt(tau2Post))
+    mixDraws[k,j] = mu[j]
   }
   
   # Update sigma2's
   for (j in 1:nComp){
-    sigma2[j] <- rScaledInvChi2(1, df = nu0[j] + nAlloc[j], scale = (nu0[j]*sigma2_0[j] + sum((x[alloc == j] - mu[j])^2))/(nu0[j] + nAlloc[j]))
+    sigma2[j] <- rScaledInvChi2(1, df = nu0[j] + nAlloc[j], 
+                                scale = (nu0[j]*sigma2_0[j] +
+                                           sum((x[alloc == j] - 
+                                                  mu[j])^2))/(nu0[j] + nAlloc[j]))
+    mixDraws[k,j+2] = sigma2[j]
   }
+
   
   # Update allocation
   for (i in 1:nObs){
@@ -126,4 +133,12 @@ lines(xGrid, mixDensMean, type = "l", lwd = 2, lty = 4, col = "red")
 lines(xGrid, dnorm(xGrid, mean = mean(x), sd = apply(x,2,sd)), type = "l", lwd = 2, col = "blue")
 legend("topright", box.lty = 1, legend = c("Data histogram","Mixture density","Normal density"), col=c("black","red","blue"), lwd = 2)
 
-#########################    Helper functions    ##############################################
+#########################    Our Code    ##############################################
+plot(mixDraws[,1],type='l')
+abline(h = mean(mixDraws[,1]))
+plot(mixDraws[,2],type='l')
+abline(h = mean(mixDraws[,2]))
+plot(mixDraws[,3],type='l')
+abline(h = mean(mixDraws[,3]))
+plot(mixDraws[,4],type='l')
+abline(h = mean(mixDraws[,4]))

@@ -26,23 +26,20 @@ for( i in 1:NDraws){
   tau_n = 1/((n/sigma) + (1/tau_0))
   ##########################
   
-  mu = rnorm(1,mu_n,sqrt(tau_n))
-  gibbsDraws[i,1] = mu
+  mu_gibbs = rnorm(1,mu_n,sqrt(tau_n))
+  gibbsDraws[i,1] = mu_gibbs
   
-  tau = (nu_0*sigma_0 + sum((data[,1]-mu)^2))/(n+nu_0)
+  tau = (nu_0*sigma_0 + sum((data[,1]-mu_gibbs)^2))/(n+nu_0)
   sigma = ((nu_n-1)*tau)/rchisq(1,nu_n-1)
   gibbsDraws[i,2] = sigma
 }
 
-#Does these look okay?
 hist(gibbsDraws[,1])
-hist(gibbsDraws[,2]) #Does not look like chi square
+hist(gibbsDraws[,2]) 
 
-#Are these two plots needed?
 plot(gibbsDraws[,1],type = 'l')
 plot(gibbsDraws[,2],type = 'l')
 
-#Does these look good?
 cusumData =  cumsum(gibbsDraws[,1])/seq(1,NDraws)
 plot(1:NDraws, cusumData, type = "l", ylab='Cumulative estimate', xlab = 'MCMC iteration', xlim = c(0,NDraws), 
      main = 'Cusum - Gibbs')
@@ -55,10 +52,11 @@ abline(h = mean(gibbsDraws[,2]))
 
 ## b)
 source("/home/krisi211/Desktop/TDDE07/Lab3/NormalMixtureGibbs.R")
-#How to evaliuate?
 
 ## c)
-plot(density(data[,1]))
-lines(dnorm(x = length(data[,1]),mu,sqrt(sigma)))
-
+plot(density(data[,1]),col='red',xlim = c(xGridMin,xGridMax))
+mu_hat = mean(gibbsDraws[,1])
+sigma_hat = mean(gibbsDraws[,2])
+lines(xGrid,dnorm(xGrid,mu_hat,sqrt(sigma_hat)), col = 'blue')
+lines(xGrid,mixDensMean, type = "l", lwd = 2, lty = 4, col = "black")
       
