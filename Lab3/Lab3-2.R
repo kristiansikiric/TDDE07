@@ -1,4 +1,4 @@
-data = read.delim("/home/krisi211/Desktop/TDDE07/Lab3/eBayNumberOfBidderData.dat",sep = "")
+data = read.delim("/home/ponsv690/Documents/TDDE07/Lab3/eBayNumberOfBidderData.dat",sep = "")
 X = as.matrix(data[,-1])
 y = data[1]
 ## a)
@@ -14,10 +14,10 @@ initVal = c(rep(0,dim(X)[2]))
 library("mvtnorm")
 
 logPoisson = function(betas, y,X,mu,sigma){
-  logPos = (sum(y*betas*X - exp(betas*X) - log(factorial(y))))
+  logPos = (sum(y*betas%*%t(X) - exp(betas%*%t(X)) - log(factorial(y))))
   
+  if (abs(logPos) == Inf) logPos = -20001
   logPrior = dmvnorm(betas, mu, sigma)
-  
   return(logPos + logPrior)
 }
 
@@ -26,6 +26,7 @@ beta.tilde = OptimResults$par
 inv.hessian = -solve(OptimResults$hessian)
 
 beta = rmvnorm(10000, beta.tilde, inv.hessian) 
-hist(beta)
+(colMeans(beta))
+coef(glm.model)
 
 ## c)
