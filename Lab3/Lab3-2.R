@@ -1,4 +1,5 @@
-data = read.delim("/home/ponsv690/Documents/TDDE07/Lab3/eBayNumberOfBidderData.dat",sep = "")
+data = read.delim("//Users/kristiansikiric/Desktop/TDDE07/Lab3/eBayNumberOfBidderData.dat", sep = "")
+#data = read.delim("/home/ponsv690/Documents/TDDE07/Lab3/eBayNumberOfBidderData.dat",sep = "")
 set.seed(123)
 X = as.matrix(data[,-1])
 y = data[1]

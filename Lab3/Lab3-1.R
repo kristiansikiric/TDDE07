@@ -1,4 +1,5 @@
-data =read.delim("/home/krisi211/Desktop/TDDE07/Lab3/rainfall.dat")
+data = read.delim("/Users/kristiansikiric/Desktop/TDDE07/Lab3/rainfall.dat")
+#data =read.delim("/home/krisi211/Desktop/TDDE07/Lab3/rainfall.dat")
 set.seed(123)
 ## a)
 # Init values
@@ -51,7 +52,8 @@ plot(1:NDraws, cusumData, type = "l", ylab='Cumulative estimate', xlab = 'MCMC i
 abline(h = mean(gibbsDraws[,2]))
 
 ## b)
-source("/home/krisi211/Desktop/TDDE07/Lab3/NormalMixtureGibbs.R")
+#source("/home/krisi211/Desktop/TDDE07/Lab3/NormalMixtureGibbs.R")
+source("/Users/kristiansikiric/Desktop/TDDE07/Lab3/NormalMixtureGibbs.R")
 
 ## c)
 plot(density(data[,1]),col='red',xlim = c(xGridMin,xGridMax))

@@ -3,7 +3,7 @@
 
 ##########    BEGIN USER INPUT #################
 # Data options
-rawData <- read.delim("/home/krisi211/Desktop/TDDE07/Lab3/rainfall.dat")
+rawData <- read.delim("/Users/kristiansikiric/Desktop/TDDE07/Lab3/rainfall.dat")
 x <- as.matrix(rawData['X136'])
 
 # Model options
@@ -64,15 +64,16 @@ xGridMin <- min(xGrid)
 xGridMax <- max(xGrid)
 mixDensMean <- rep(0,length(xGrid))
 effIterCount <- 0
-ylim <- c(0,2*max(hist(x)$density))
+ylim <- c(0,2*max(hist(x,plot=FALSE)$density))
+print = TRUE
 
 mixDraws = matrix(0,nIter,4)
 
 for (k in 1:nIter){
-  message(paste('Iteration number:',k))
+  #message(paste('Iteration number:',k))
   alloc <- S2alloc(S) # Just a function that converts between different representations of the group allocations
   nAlloc <- colSums(S)
-  print(nAlloc)
+  #print(nAlloc)
   # Update components probabilities
   pi <- rDirichlet(alpha + nAlloc)
   
@@ -107,23 +108,23 @@ for (k in 1:nIter){
   }
   
   # Printing the fitted density against data histogram
-  if (plotFit && (k%%1 ==0)){
+  if (plotFit && (k%%1 ==0) && print){
     effIterCount <- effIterCount + 1
-    hist(x, breaks = 20, freq = FALSE, xlim = c(xGridMin,xGridMax), main = paste("Iteration number",k), ylim = ylim)
+    #hist(x, breaks = 20, freq = FALSE, xlim = c(xGridMin,xGridMax), main = paste("Iteration number",k), ylim = ylim)
     mixDens <- rep(0,length(xGrid))
     components <- c()
     for (j in 1:nComp){
       compDens <- dnorm(xGrid,mu[j],sd = sqrt(sigma2[j]))
       mixDens <- mixDens + pi[j]*compDens
-      lines(xGrid, compDens, type = "l", lwd = 2, col = lineColors[j])
+      #lines(xGrid, compDens, type = "l", lwd = 2, col = lineColors[j])
       components[j] <- paste("Component ",j)
     }
     mixDensMean <- ((effIterCount-1)*mixDensMean + mixDens)/effIterCount
     
-    lines(xGrid, mixDens, type = "l", lty = 2, lwd = 3, col = 'red')
-    legend("topleft", box.lty = 1, legend = c("Data histogram",components, 'Mixture'), 
-           col = c("black",lineColors[1:nComp], 'red'), lwd = 2)
-    Sys.sleep(sleepTime)
+    #lines(xGrid, mixDens, type = "l", lty = 2, lwd = 3, col = 'red')
+    #legend("topleft", box.lty = 1, legend = c("Data histogram",components, 'Mixture'), 
+           #col = c("black",lineColors[1:nComp], 'red'), lwd = 2)
+    #Sys.sleep(sleepTime)
   }
   
 }
