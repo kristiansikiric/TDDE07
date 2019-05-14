@@ -1,5 +1,5 @@
-data = read.delim("//Users/kristiansikiric/Desktop/TDDE07/Lab3/eBayNumberOfBidderData.dat", sep = "")
-#data = read.delim("/home/ponsv690/Documents/TDDE07/Lab3/eBayNumberOfBidderData.dat",sep = "")
+#data = read.delim("//Users/kristiansikiric/Desktop/TDDE07/Lab3/eBayNumberOfBidderData.dat", sep = "")
+data = read.delim("/home/ponsv690/Documents/TDDE07/Lab3/eBayNumberOfBidderData.dat",sep = "")
 set.seed(123)
 X = as.matrix(data[,-1])
 y = data[1]
@@ -53,7 +53,7 @@ rwm = function(var, LogPost, theta_prev, ...){
 }
 
 mcmc = function(LogPost, ndraws, ncov) {
-  c = 5
+  c = 2
   var = c * inv.hessian
   beta = matrix(rep(rep(0, ncov), ndraws), ncol = ncov)
   accepted = rep(0, ndraws-1)
