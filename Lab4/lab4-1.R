@@ -32,3 +32,35 @@ plot(ar_sims[20,],type = 'l', main = paste("phi = ",phi[21]))
 
 ## b)
 library('rstan')
+
+x = ar.sim(0.3)
+y = ar.sim(0.95)
+
+StanModel = '
+data{
+  int<lower=1> N;
+  real x[N];
+}
+parameters{
+  real mu;
+  real phi;
+  real sigma2;
+}
+transformed parameters {
+  real sigma;
+  sigma = sqrt(sigma2);
+}
+model{
+  for(n in 2:N){
+    x[n] ~ normal(mu + phi*(x[n-1]-mu), sigma);
+  }
+}
+'
+
+x.fit = stan(model_code = StanModel, data = list(N = T, x=x))
+print(x.fit, digits_summary = 3)
+
+y.fit = stan(model_code = StanModel, data = list(N = T, x=y),control = list(adapt_delta = 0.9))
+print(y.fit,digits_summary = 3)
+
+
