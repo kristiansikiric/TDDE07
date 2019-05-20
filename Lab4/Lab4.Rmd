@@ -1,0 +1,370 @@
+---
+author: "Pontus Svensson (ponsv690) & Kristian Sikiric (krisi211)"
+date: ""
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+title: "TDDE07 - Lab 4"
+header-includes:
+-  \usepackage{float}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, fig.pos = "H", out.extra = "", fig.width = 4, fig.height = 4, fig.align = "center", cache = FALSE)
+```
+
+# Assignment 1
+### Time series models in Stan
+
+A function was written to simulate data from the AR(1)-process
+$x_t = \mu + \phi (x_{t-1} - \mu) + \epsilon_t, \epsilon_t \sim N(0,\sigma^2)$,
+with $\mu=10, \sigma^2=2, T=200$ and $t=2,3, ...,T$. The vector $x_{1:T}$ containing all time points was returned. Simulations for values of $\phi$ between -1 and 1 were performed to show the effect of $\phi$. The plots below show that a high positive $\phi$ makes the AR(1)-process only depend on previous values, making the process follow temporary trends. When $\phi=0$, the values oscillates around the mean. With a $\phi$ close to -1, the values oscillates quicker around the mean than larger values of $\phi$. 
+
+```{r}
+set.seed(123)
+## a)
+
+T=200
+mu = 10
+sigma2 = 2
+
+t = seq(2,T)
+x1 = mu
+phi = seq(-1,1,by=0.1)
+
+
+ar.sim = function(phi){
+  x_sample = rep(0,length=length(t))
+  x_sample[1] = x1
+  for(time in t){
+    epsilon_t = rnorm(1,0,sqrt(sigma2))
+    x_sample[time] = mu + phi*(x_sample[time-1] - mu) + epsilon_t
+  }
+  return (x_sample)
+}
+
+ar_sims = matrix(ncol = length(t)+1, nrow = length(phi),data = 0)
+
+for (i in 1:length(phi)){
+  ar_sims[i,] = ar.sim(phi[i])
+}
+#Hur ska man tolka det här?
+plot(ar_sims[1,],type = 'l', main = paste("phi = ",phi[1]), ylab = "xt")
+plot(ar_sims[11,],type = 'l',main = paste("phi = ",phi[11]), ylab = "xt")
+plot(ar_sims[21,],type = 'l', main = paste("phi = ",phi[21]), ylab = "xt")
+
+```
+
+
+Next, two AR(1)-processes were simulated, one with $\phi=0.3$ and one with $\phi=0.95$. These were used in Stan to estimate the values of $\mu, \phi$ and $\sigma^2$ using MCMC. 
+
+Below is the posterior mean, 95% credible interval and number of effective samples for the three parameters along with a plot showing the convergence of the sampler. As we can see, when $\phi = 0.95$ the sampler have a hard time converging. We also see that we are close to sampling the true values. Also worth mentioning is that the effective samples for y are very few, meaning that the samples are correlated. This makes sense since $\phi$ is large, so the samples depend heavily on the previous sample.
+
+```{r}
+suppressMessages(library('rstan'))
+
+x = ar.sim(0.3)
+y = ar.sim(0.95)
+
+StanModel = '
+data{
+  int<lower=1> N;
+  real x[N];
+}
+parameters{
+  real mu;
+  real phi;
+  real sigma2;
+}
+transformed parameters {
+  real sigma;
+  sigma = sqrt(sigma2);
+}
+model{
+  for(n in 2:N){
+    x[n] ~ normal(mu + phi*(x[n-1]-mu), sigma);
+  }
+}
+'
+x.fit = stan(model_code = StanModel, data = list(N = T, x=x),refresh = 0)
+y.fit = stan(model_code = StanModel, data = list(N = T, x=y),refresh = 0)
+
+print("Parameters for x")
+print(x.fit, digits_summary = 3,pars = c('mu','sigma2','phi'),probs = c(0.025,0.975))
+cat("\nParameters for y\n")
+print(y.fit,digits_summary = 3,pars = c('mu','sigma2','phi'),probs = c(0.025,0.975))
+
+plot(extract(x.fit)$mu,type = 'l',ylab = c("mu"), main = paste("phi = 0.3"))
+plot(extract(y.fit)$mu, type = 'l',ylab="mu", main = paste("phi = 0.95"))
+
+```
+
+Below are two plots showing the joint posterior of $\phi$ and $\mu$ for the two samplers. We see that $\mu$ varies more and more when $\phi$ is close to one.
+
+```{r}
+plot(extract(x.fit)$mu,extract(x.fit)$phi,ylab="phi",xlab="mu")
+plot(extract(y.fit)$mu,extract(y.fit)$phi,ylab="phi",xlab="mu")
+```
+
+
+Now a dataset containing the number of cases of campylobacter infections was used. It was assumed that the number of infections $c_t$ at each time point followed an independent Poisson distribution when conditioned on a latent AR(1)-process $x_t$, $c_t|x_t \sim Poisson(exp(x_t))$. The simulation was done in Stan again, we only used the prior that $\phi$ is between -1 and 1. Below is the plot of the posterior mean and 95% credible intervals for the latent intensity $\theta_t = exp(x_t)$.
+
+```{r}
+data = read.delim("~/Documents/TDDE07/Lab4/campy.dat")
+
+#xt = ar.sim(0.3)
+
+StanModel2 = '
+data{
+  int<lower=1> N;
+  int c[N];
+}
+parameters{
+  real x[N];
+  real mu;
+  real phi;
+  real sigma2;
+}
+transformed parameters {
+  real sigma;
+  sigma = sqrt(sigma2);
+}
+model{
+  phi ~ uniform(-1, 1);
+  for(n in 2:N){
+    x[n] ~ normal(mu + phi*(x[n-1]-mu), sigma);
+    c[n-1] ~ poisson(exp(x[n-1]));
+  }
+  c[N] ~ poisson(exp(x[N]));
+}
+'
+
+fit.stan = function(stanModel, data){
+  c.fit = stan(model_code = stanModel,data = list(N = length(data$c),c=data$c),refresh=0)
+}
+
+plot.stan = function(model, data){
+  #Last five elements were not wanted.
+  mean = exp(summary(model)$summary[1:140,'mean'])
+  cred_97.5 = exp(summary(model)$summary[1:140,'97.5%'])
+  cred_2.5 = exp(summary(model)$summary[1:140,'2.5%'])
+  plot(data$c,ylab = "data")
+  lines(mean,col="green")
+  lines(cred_2.5,col="red")
+  lines(cred_97.5,col="blue")
+  legend("topleft", legend = c("Mean", "2.5% cred. interval", "97.5% cred. interval"), col = c("green", "red", "blue"), lty = 1, cex = 0.8)
+}
+
+c.fit = fit.stan(StanModel2, data)
+plot.stan(c.fit, data)
+
+```
+
+
+The assignment above was repeated but with a different prior of $\sigma^2$. $\sigma^2$ was supposed to be small, so we used a scaled inverse chi squared distribution to get a small $\sigma^2$. The following plot shows the new result.
+
+```{r}
+
+StanModel3 = '
+data{
+  int<lower=1> N;
+  int c[N];
+}
+parameters{
+  real x[N];
+  real mu;
+  real phi;
+  real<lower=0> sigma2;
+}
+transformed parameters {
+  real sigma;
+  sigma = sqrt(sigma2);
+}
+model{
+  phi ~ uniform(-1, 1);
+  sigma2 ~ scaled_inv_chi_square(N,0.05);
+  for(n in 2:N){
+    x[n] ~ normal(mu + phi*(x[n-1]-mu), sigma);
+    c[n-1] ~ poisson(exp(x[n-1]));
+  }
+  c[N] ~ poisson(exp(x[N]));
+}
+'
+
+c.fit = fit.stan(StanModel3, data)
+plot.stan(c.fit, data)
+```
+
+As we can see, the intensity is much smoother, so the posterior has changed.
+
+
+\newpage
+
+#Appendix
+
+```{r,echo = TRUE,eval = FALSE}
+set.seed(123)
+## a)
+
+T=200
+mu = 10
+sigma2 = 2
+
+t = seq(2,T)
+x1 = mu
+phi = seq(-1,1,by=0.1)
+
+
+ar.sim = function(phi){
+  x_sample = rep(0,length=length(t))
+  x_sample[1] = x1
+  for(time in t){
+    epsilon_t = rnorm(1,0,sqrt(sigma2))
+    x_sample[time] = mu + phi*(x_sample[time-1] - mu) + epsilon_t
+  }
+  return (x_sample)
+}
+
+ar_sims = matrix(ncol = length(t)+1, nrow = length(phi),data = 0)
+
+for (i in 1:length(phi)){
+  ar_sims[i,] = ar.sim(phi[i])
+}
+#Hur ska man tolka det här?
+plot(ar_sims[1,],type = 'l', main = paste("phi = ",phi[1]), ylab = "xt")
+plot(ar_sims[11,],type = 'l',main = paste("phi = ",phi[11]), ylab = "xt")
+plot(ar_sims[21,],type = 'l', main = paste("phi = ",phi[21]), ylab = "xt")
+
+## b)
+suppressMessages(library('rstan'))
+
+x = ar.sim(0.3)
+y = ar.sim(0.95)
+
+StanModel = '
+data{
+  int<lower=1> N;
+  real x[N];
+}
+parameters{
+  real mu;
+  real phi;
+  real sigma2;
+}
+transformed parameters {
+  real sigma;
+  sigma = sqrt(sigma2);
+}
+model{
+  for(n in 2:N){
+    x[n] ~ normal(mu + phi*(x[n-1]-mu), sigma);
+  }
+}
+'
+x.fit = stan(model_code = StanModel, data = list(N = T, x=x),refresh = 0)
+y.fit = stan(model_code = StanModel, data = list(N = T, x=y),refresh = 0)
+
+print("Parameters for x")
+print(x.fit, digits_summary = 3,pars = c('mu','sigma2','phi'),probs = c(0.025,0.975))
+cat("\nParameters for y\n")
+print(y.fit,digits_summary = 3,pars = c('mu','sigma2','phi'),probs = c(0.025,0.975))
+
+plot(extract(x.fit)$mu,type = 'l',ylab = c("mu"), main = paste("phi = 0.3"))
+plot(extract(y.fit)$mu, type = 'l',ylab="mu", main = paste("phi = 0.95"))
+plot(extract(x.fit)$mu,extract(x.fit)$phi)
+plot(extract(y.fit)$mu,extract(y.fit)$phi)
+
+## c)
+data = read.delim("~/Documents/TDDE07/Lab4/campy.dat")
+
+#xt = ar.sim(0.3)
+
+StanModel2 = '
+data{
+  int<lower=1> N;
+  int c[N];
+}
+parameters{
+  real x[N];
+  real mu;
+  real phi;
+  real sigma2;
+}
+transformed parameters {
+  real sigma;
+  sigma = sqrt(sigma2);
+}
+model{
+  phi ~ uniform(-1, 1);
+  for(n in 2:N){
+    x[n] ~ normal(mu + phi*(x[n-1]-mu), sigma);
+    c[n-1] ~ poisson(exp(x[n-1]));
+  }
+  c[N] ~ poisson(exp(x[N]));
+}
+'
+
+fit.stan = function(stanModel, data){
+  c.fit = stan(model_code = stanModel,data = list(N = length(data$c),c=data$c))
+}
+
+plot.stan = function(model, data){
+  #Last five elements were not wanted.
+  mean = exp(summary(model)$summary[1:140,'mean'])
+  cred_97.5 = exp(summary(model)$summary[1:140,'97.5%'])
+  cred_2.5 = exp(summary(model)$summary[1:140,'2.5%'])
+  plot(data$c)
+  lines(mean,col="green")
+  lines(cred_2.5,col="red")
+  lines(cred_97.5,col="blue")
+  legend("topleft", legend = c("Mean", "2.5% cred. interval", "97.5% cred. interval"), 
+         col = c("green", "red", "blue"), lty = 1, cex = 0.8)
+}
+
+c.fit = fit.stan(StanModel2, data)
+plot.stan(c.fit, data)
+
+## d)
+
+StanModel3 = '
+data{
+  int<lower=1> N;
+  int c[N];
+}
+parameters{
+  real x[N];
+  real mu;
+  real phi;
+  real<lower=0> sigma2;
+}
+transformed parameters {
+  real sigma;
+  sigma = sqrt(sigma2);
+}
+model{
+  phi ~ uniform(-1, 1);
+  sigma2 ~ scaled_inv_chi_square(N,0.05);
+  for(n in 2:N){
+    x[n] ~ normal(mu + phi*(x[n-1]-mu), sigma);
+    c[n-1] ~ poisson(exp(x[n-1]));
+  }
+  c[N] ~ poisson(exp(x[N]));
+}
+'
+
+c.fit = fit.stan(StanModel3, data)
+plot.stan(c.fit, data)
+```
+
+
+
+
+
+
+
+
+
+
+
